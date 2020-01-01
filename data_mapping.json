@@ -1,0 +1,5 @@
+{
+    "Name": "['price']['shortName']",
+    "Previous Close": "['price']['regularMarketPreviousClose']['fmt']",
+    "Previous Change": "['price']['regularMarketPreviousClose']['fmt']"
+}
