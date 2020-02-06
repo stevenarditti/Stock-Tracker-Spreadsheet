@@ -19,7 +19,7 @@ df = {}
 
 # the file where stock ticker list can be found
 # defaults to companies.txt 
-src_file = "companies.txt"
+src_file = "watchlist.txt"
 
 export_file = "export.csv" 
 
