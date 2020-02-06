@@ -1,9 +1,14 @@
-#!/usr/bin/env python36
+#!/usr/bin/env python
 
 from stock import Stock
 import utils
 from pandas import DataFrame
 import sys
+
+
+# Enable to print additional information
+DEBUG = False
+
 
 companies = []
 stocks = []
@@ -18,6 +23,14 @@ src_file = "companies.txt"
 
 export_file = "export.csv" 
 
+
+def debug_print(s):
+    if DEBUG:
+        print(s)
+
+def bad_input():
+    print("Usage: app [-f sourcefile] [-o outputfile]")
+    sys.exit(0)
 
 # exports data as a csv
 def export_to_csv():
@@ -52,15 +65,21 @@ def create_dataframe():
 def init_stocks():
     global fields
 
-    # open file containing company list 
-    f1 = open(src_file, "r+")
-    companies = f1.readlines()
-    f1.close()
+    # try to open file containing company list
+    try:
+        f1 = open(src_file, "r+")
+        companies = f1.readlines()
+        f1.close()
+    except:
+        bad_input()
 
-    # open file containing desired fields
-    f2 = open("data_mapping.json", "r+")
-    fields = utils.file_to_dict(f2.readlines())
-    f2.close()
+    # try to open file containing desired fields
+    try:
+        f2 = open("data_mapping.json", "r+")
+        fields = utils.file_to_dict(f2.readlines())
+        f2.close()
+    except:
+        bad_input()
 
     # each stock will fetch data upon initialization
     for ticker in companies:
@@ -79,14 +98,16 @@ if __name__ == "__main__":
     for i in range(1, len(sys.argv)):
         
         # -f flag specifies the source file of the stock list
-        if len(sys.argv) < i + 1:
-            if sys.argv[i] == "-f":
+        if sys.argv[i] == "-f":
+            debug_print("-f flag found")
+            if i < len(sys.argv) - 1:
                 src_file = sys.argv[i+1]
-                i += 1
-            if sys.argv[i] == "-o":
+            else:
+                bad_input()
+        elif sys.argv[i] == "-o":
+            debug_print("-o flag found")
+            if i <len(sys.argv) - 1:
                 export_file = sys.argv[i+1]
-                i += 1
-        else:
-            print("Usage: app [-f sourcefile]")
-            sys.exit(0)
+            else:
+                bad_input()
     main()
