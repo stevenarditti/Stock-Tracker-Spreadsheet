@@ -6,9 +6,8 @@ import json
 
 class Stock:
 
-
     ticker = ""
-    data = ""
+    data = {}
     # data fields needed
 
     def __init__(self, ticker):

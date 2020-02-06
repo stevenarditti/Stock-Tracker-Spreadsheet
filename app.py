@@ -1,109 +1,92 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python36
 
-from openpyxl import Workbook
 from stock import Stock
+import utils
+from pandas import DataFrame
 import sys
-import json
 
-
-######### Variables
 companies = []
-data_fields = {}
-stocks = set()
+stocks = []
+fields = {}
+
+# dataframe object
+df = {}
+
+# the file where stock ticker list can be found
+# defaults to companies.txt 
 src_file = "companies.txt"
-save_file = "companies.xlsx"
-wb = ""
-cur_row = 1
-cur_col = ""
 
-# True to print debug info, False to ignore
-DEBUG = True
+export_file = "export.csv" 
 
-# check if a letter needs to be appended for incrementation, e.g. column ZZ
-# returns new col
-def inc_col():
-    global cur_col
-    new_col = ""
-    append = True
-    chars = list(cur_col)
-    for ch in chars:
-        if (ch != "Z"):
-            append = False
-            break
-        new_col += "A"
-    if (append):
-        cur_col = new_col + "A"
-    else:
-        cur_col = chr(ord(cur_col) + 1)
-        return cur_col
 
-def reset_cur_col():
-    global cur_col
-    cur_col = "A"
+# exports data as a csv
+def export_to_csv():
+    df.to_csv(export_file)
 
-def write_company_data():
-    global cur_row, cur_col
-    ws = wb.active
+# creates the DataFrame object from the stock list
+def create_dataframe():
+    global df
+
+    # initialize data dictionary with header names
+    data = {}
+    for name in fields:
+        data[name] = []
+
+    # iterate through each stock
     for stock in stocks:
-        reset_cur_col()
-        cur_row += 1
+        stock_data = stock.getData()
 
-        # set ticker
-        ws[cur_col + str(cur_row)] = stock.getTicker()
+        # iterate through desired fields
+        for name in fields:
+            # fields[name] specifies how to access intended value from the dict structure
+            # value can be pulled from stock_data using eval
+            val = eval("stock_data" + fields[name])
+            data[name].append(val)
+            
+    # create a DataFrame out of the pulled data
+    df = DataFrame(data)
+    df = df.set_index("Name") 
 
-        data = stock.getData()
-        # set data
-        for field in data_fields:
-            if DEBUG:
-                print(field)
-                print(data_fields[field])
-                print(eval("data" + data_fields[field]))
-            ws[inc_col() + str(cur_row)] = eval("data" + data_fields[field])
-    wb.save(save_file)
 
-def write_companies():
-    for stock in stocks:
-        write_company_data()
+# fetches stock data for each company in src_file
+def init_stocks():
+    global fields
 
-# util function, consider making a util class?
-def list_to_json(read_lines):
-    string = ""
-    for line in read_lines:
-        string += line
-    return json.loads(string)
-
-def init_workbook():
-    global companies, data_fields, wb
-
+    # open file containing company list 
     f1 = open(src_file, "r+")
     companies = f1.readlines()
     f1.close()
 
+    # open file containing desired fields
     f2 = open("data_mapping.json", "r+")
-    data_fields = list_to_json(f2.readlines())
+    fields = utils.file_to_dict(f2.readlines())
     f2.close()
 
-    wb = Workbook()
-    ws = wb.active
-    reset_cur_col()
-    ws["A1"] = "Ticker"
-    for key in data_fields:
-        ws[inc_col() + "1"] = key
-    wb.save(save_file)
-    
+    # each stock will fetch data upon initialization
     for ticker in companies:
-        stocks.add(Stock(ticker))
+        stocks.append(Stock(ticker))
+
+
+def main():
+    init_stocks()
+    create_dataframe()
+    export_to_csv()
+
 
 if __name__ == "__main__":
-    ii = 0
-    while len(sys.argv) > ii:
-        if sys.argv[ii] == "-p" and len(sys.argv) > ii + 1:
-            src_file = sys.argv[ii+1]
-            try:
-                save_file = src_file.split(".")[0] + ".xlsx"
-            except:
-                save_file = src_file + ".xlsx" 
-        ii+=1
-    
-    init_workbook()
-    write_companies()
+
+    # argument parsing
+    for i in range(1, len(sys.argv)):
+        
+        # -f flag specifies the source file of the stock list
+        if len(sys.argv) < i + 1:
+            if sys.argv[i] == "-f":
+                src_file = sys.argv[i+1]
+                i += 1
+            if sys.argv[i] == "-o":
+                export_file = sys.argv[i+1]
+                i += 1
+        else:
+            print("Usage: app [-f sourcefile]")
+            sys.exit(0)
+    main()
